@@ -10,12 +10,14 @@ class Results:
     def __init__(self, driver) -> None:
         self.driver = driver
         self.job_id_element = (By.XPATH, "//*[starts-with(@id, 'job-title-')]")
-        self.pages = 5
+        self.salary_range = (By.CSS_SELECTOR, '[data-automation="jobSalary"]')
+        self.job_link = (By.CSS_SELECTOR, '[data-automation="job-list-view-job-link"]')
+        self.pages = 50
 
     
-    def scrape_results(self):
+    def scrape_results(self) -> list:
 
-        job_ids = []
+        paired_list = []
         self.driver.get("https://www.jobstreet.com.ph/wfh-jobs?page=1")
 
         for x in range(1, self.pages):
@@ -27,13 +29,21 @@ class Results:
                     EC.presence_of_all_elements_located(self.job_id_element),
                     message="message ids found."
                 )
+                salary_range_elements = self.driver.find_elements(*self.salary_range)
+                job_link_elements = self.driver.find_elements(*self.job_link)
+                
+                job_ids = [element.text for element in job_id_elements]
+                salary_range = [element.text for element in salary_range_elements]
+                job_links = [element.get_attribute('href')[0:41] for element in job_link_elements]
 
-                for element in job_id_elements:
-                    job_ids.append(element.text)
-            
+                paired_list_batch = list(zip(job_ids, salary_range, job_links))
+
             except TimeoutError:
                 print(f"Timed out while fetching job IDs for page {x}")
 
             time.sleep(2)
+            paired_list.extend(paired_list_batch)
 
-        return job_ids
+        return paired_list
+    
+    
